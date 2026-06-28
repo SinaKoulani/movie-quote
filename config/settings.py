@@ -8,13 +8,18 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = str(os.environ.get("CONFIG_SECRET_KEY"))
+SECRET_KEY = os.environ.get("CONFIG_SECRET_KEY", "django-insecure-dev-key")
 
-DEBUG = bool(int(os.environ.get("CONFIG_DEBUG", 0)))
-ALLOWED_HOSTS = os.environ.get("CONFIG_ALLOWED_HOSTS", []).split(", ")
+DEBUG = bool(int(os.environ.get("CONFIG_DEBUG", 1)))
 
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.environ.get("CONFIG_ALLOWED_HOSTS", "127.0.0.1,localhost").split(",")
+    if host.strip()
+]
 
 INSTALLED_APPS = [
+    'jazzmin',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -28,7 +33,6 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'drf_yasg',
     'corsheaders',
-
 ]
 
 MIDDLEWARE = [
@@ -46,8 +50,7 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        # path to load email templates
-        'DIRS': [os.path.join(BASE_DIR, 'templates')],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -61,66 +64,41 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'config.wsgi.application'
-# database configs
-dev_db = "sqlite:///" + os.path.join(BASE_DIR, "db.sqlite3")
+
+dev_db = "sqlite:///" + str(BASE_DIR / "db.sqlite3")
 DATABASES = {
     "default": dj_database_url.config(
         default=os.environ.get("DATABASE_URL", dev_db)
     )
 }
+
 PASSWORD_VALIDATOR = 'django.contrib.auth.password_validation.'
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': f'{PASSWORD_VALIDATOR}UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': f'{PASSWORD_VALIDATOR}MinimumLengthValidator',
-    },
-    {
-        'NAME': f'{PASSWORD_VALIDATOR}CommonPasswordValidator',
-    },
-    {
-        'NAME': f'{PASSWORD_VALIDATOR}NumericPasswordValidator',
-    },
+    {'NAME': f'{PASSWORD_VALIDATOR}UserAttributeSimilarityValidator'},
+    {'NAME': f'{PASSWORD_VALIDATOR}MinimumLengthValidator'},
+    {'NAME': f'{PASSWORD_VALIDATOR}CommonPasswordValidator'},
+    {'NAME': f'{PASSWORD_VALIDATOR}NumericPasswordValidator'},
 ]
 
 LANGUAGE_CODE = 'en-us'
-
-STATIC_URL = 'static/'
-
 TIME_ZONE = 'America/New_York'
-
 USE_I18N = True
-
-USE_L10N = True
-# disabled to solve bugs with statistic visit object creation and complicities
-# with different timezones
 USE_TZ = False
 
-# STATIC_URL = '/static/'
-# MEDIA_URL = '/media/'
-# MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')
-# STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-# STATICFILES_DIRS = (
-#     os.path.join(BASE_DIR, 'static'),
-# )
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_DIRS = []
 
 REST_FRAMEWORK = {
     'TEST_REQUEST_DEFAULT_FORMAT': 'json',
-    'DEFAULT_RENDERER_CLASSES': [
-        'rest_framework.renderers.JSONRenderer',
-    ],
-    'DEFAULT_PARSER_CLASSES': [
-        'rest_framework.parsers.JSONParser',
-    ],
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAdminUser',
-    ],
+    'DEFAULT_RENDERER_CLASSES': ['rest_framework.renderers.JSONRenderer'],
+    'DEFAULT_PARSER_CLASSES': ['rest_framework.parsers.JSONParser'],
+    'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.IsAdminUser'],
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication'
     ],
 }
-# simplejwt configs
+
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=3),
@@ -128,26 +106,18 @@ SIMPLE_JWT = {
     'BLACKLIST_AFTER_ROTATION': True,
 }
 
-# swagger configs
 SWAGGER_SETTINGS = {
     'SECURITY_DEFINITIONS': {
-        'basic': {
-            'type': 'basic',
-        },
-        'bearer': {
-            'type': 'apiKey',
-            'name': 'Authorization',
-            'in': 'header'
-        }
+        'basic': {'type': 'basic'},
+        'bearer': {'type': 'apiKey', 'name': 'Authorization', 'in': 'header'},
     },
     'LOGIN_URL': 'rest_framework:login',
     'LOGOUT_URL': 'rest_framework:logout',
     'SHOW_URL_CODE_SAMPLES': True,
 }
 
-# ipstack api access key
 IPSTACK_ACCESS_KEY = os.environ.get("IPSTACK_ACCESS_KEY")
-# email configs
+
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = os.environ.get("CONFIG_EMAIL_HOST")
 EMAIL_HOST_USER = os.environ.get("CONFIG_EMAIL_HOST_USER")
@@ -156,13 +126,35 @@ EMAIL_USE_TLS = True
 EMAIL_PORT = 587
 
 CORS_ALLOW_ALL_ORIGINS = True
+
+# تنظیمات امن فقط برای پروداکشن
 if not DEBUG:
     SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
     SECURE_HSTS_SECONDS = 259200
-    # redirect HTTP request to HTTPS
-    SECURE_SSL_REDIRECT = bool(
-        int(os.environ.get("CONFIG_SECURE_SSL_REDIRECT", 1)))
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_SSL_REDIRECT = bool(int(os.environ.get("CONFIG_SECURE_SSL_REDIRECT", 1)))
 
-    SECURE_PROXY_SSL_HEADER = tuple(
-        os.environ.get("CONFIG_SECURE_PROXY_SSL_HEADER").split(", ")
-    )
+    secure_proxy = os.environ.get("CONFIG_SECURE_PROXY_SSL_HEADER", "")
+    if secure_proxy:
+        parts = [p.strip() for p in secure_proxy.split(",") if p.strip()]
+        if len(parts) == 2:
+            SECURE_PROXY_SSL_HEADER = (parts[0], parts[1])
+
+# تنظیمات لوکال برای جلوگیری از ریدایرکت HTTPS
+if DEBUG:
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
+    SECURE_SSL_REDIRECT = False
+
+JAZZMIN_SETTINGS = {
+    "site_title": "Movie Admin",
+    "site_header": "Movie Admin",
+    "site_brand": "Movie Admin",
+    "welcome_sign": "Welcome to Movie Admin",
+    "copyright": "Movie Project",
+    "topmenu_links": [],
+}
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
