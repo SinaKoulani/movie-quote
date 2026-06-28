@@ -38,6 +38,8 @@ pip install django django-jazzmin python-dotenv djangorestframework
 Run backend server:
 
 powershell
+cd movie-quote
+cd backend
 python manage.py migrate
 python manage.py runserver
 3) Frontend setup
