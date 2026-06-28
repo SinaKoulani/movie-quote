@@ -5,11 +5,9 @@ A full-stack movie and series quote application built with **Django** for the ba
 ## Project Structure
 ```bash
 movie-quote/
+├── backend/        # Django backend (contains manage.py)
 ├── frontend/       # Vue.js frontend
-├── manage.py       # Django entry point
-├── venv/           # Virtual environment (not tracked)
-├── .env            # Environment variables (not tracked)
-└── ...
+└── README.md
 Tech Stack
 Backend
 Django
@@ -26,34 +24,30 @@ bash
 git clone https://github.com/SinaKoulani/movie-quote.git
 cd movie-quote
 2) Backend setup
+Navigate to the backend directory:
+
+powershell
+cd backend
 Create and activate virtual environment:
 
 powershell
 python -m venv venv
 .\venv\Scripts\Activate.ps1
-Install backend dependencies:
-
-powershell
-pip install django django-jazzmin python-dotenv djangorestframework
-Run backend server:
-
-powershell
-cd movie-quote
-cd backend
-python manage.py migrate
-python manage.py runserver
-3) Frontend setup
-Go to frontend folder:
-
-powershell
-cd frontend
 Install dependencies:
 
 powershell
-npm install
-Run development server:
+pip install django django-jazzmin python-dotenv djangorestframework
+Run migrations and server:
 
 powershell
+python manage.py migrate
+python manage.py runserver
+3) Frontend setup
+Open a new terminal window in the project root, then:
+
+powershell
+cd frontend
+npm install
 npm run dev
 Notes
 Make sure Python and Node.js are installed.
